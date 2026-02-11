@@ -1,0 +1,64 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    env_file:
+      - ./backend/.env
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile # explicit Dockerfile
+    restart: always
+    command: >
+      sh -c "echo 'Waiting for postgres...' &&
+             while ! nc -z db 5432; do sleep 1; done;
+             echo 'PostgreSQL started' &&
+             python manage.py migrate --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/code
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "8000" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    env_file:
+      - ./frontend/.env
+    ports:
+      - "5173:5173"
+    depends_on:
+      web:
+        condition: service_healthy
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+
+volumes:
+  pgdata:
+
+

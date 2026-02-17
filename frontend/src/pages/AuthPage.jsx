@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     User, Mail, Lock, Eye, EyeOff,
     MapPin, Plane, Globe, Calendar, Check, X,
     Loader2, ArrowLeft, Timer
 } from 'lucide-react';
 import api from '../api/axios';
-import heroBg from '../assets/hero_bg.jpg';
+import { useAuth } from '../context/AuthContext';
+import loginSignupImg from '../assets/login_signup.jfif';
 
 const APPROVED_COUNTRIES = [
     "United States", "United Kingdom", "Canada", "Australia",
@@ -101,43 +102,46 @@ const PasswordChecklist = ({ password }) => {
 const AuthPage = () => {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { login, isLoading: authLoading } = useAuth();
     const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'login';
     const [mode, setMode] = useState(initialMode);
     const isLogin = mode === 'login';
 
-    // Global
-    const [isLoading, setIsLoading] = useState(false);
+    // Global UI States
+    const [isActionLoading, setIsActionLoading] = useState(false);
     const [globalError, setGlobalError] = useState("");
+    const [errors, setErrors] = useState({}); // Field-level errors
 
     // Form Fields
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
-    const [emailError, setEmailError] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [nationality, setNationality] = useState("");
     const [travelStatus, setTravelStatus] = useState("planning"); // planning | in-kenya
     const [arrivalDate, setArrivalDate] = useState("");
 
-    // UI States
+    // Visual UI States
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // OTP Component State
+    // OTP States
     const [showOTP, setShowOTP] = useState(false);
     const [otpError, setOtpError] = useState(false);
     const [otpMessage, setOtpMessage] = useState("");
     const [resendTimer, setResendTimer] = useState(0);
+    const [isVerifying, setIsVerifying] = useState(false);
 
     const today = new Date().toISOString().split('T')[0];
 
     useEffect(() => {
         setMode(searchParams.get('mode') === 'signup' ? 'signup' : 'login');
         setGlobalError("");
+        setErrors({});
         setShowOTP(false);
+        setIsVerifying(false);
     }, [searchParams]);
 
-    // Resend Timer Logic
     useEffect(() => {
         let interval;
         if (resendTimer > 0) {
@@ -147,6 +151,8 @@ const AuthPage = () => {
         }
         return () => clearInterval(interval);
     }, [resendTimer]);
+
+    if (authLoading) return null;
 
     const toggleMode = () => {
         navigate(`/auth?mode=${isLogin ? 'signup' : 'login'}`);
@@ -162,180 +168,217 @@ const AuthPage = () => {
 
     const isMatch = password === confirmPassword;
 
-    const canSubmit = isLogin
-        ? (email && password)
-        : (fullName && email && password && confirmPassword && nationality && isPasswordValid && isMatch);
-
-
-    // --- Handlers ---
-
-    const handleLogin = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setGlobalError("");
-
-        try {
-            const response = await api.post('/api/auth/login/', { email, password });
-
-            // Save token
-            if (response.data.access_token) {
-                localStorage.setItem('access_token', response.data.access_token);
+    const isFormValid = () => {
+        if (isLogin) {
+            return email && password;
+        } else {
+            const basic = fullName && email && password && confirmPassword && nationality && isPasswordValid && isMatch;
+            if (travelStatus === 'planning') {
+                return basic && arrivalDate;
             }
-
-            const { user } = response.data;
-            navigate(user.is_in_kenya ? '/dashboard' : '/travel-guide');
-        } catch (err) {
-            console.error(err);
-            if (err.response?.status === 401) {
-                setGlobalError("Incorrect Password or Email. Please try again.");
-            } else {
-                setGlobalError("Unable to sign in. Check your connection.");
-            }
-        } finally {
-            setIsLoading(false);
+            return basic;
         }
     };
 
-    const handleSignup = async (e) => {
+    // --- Unified Auth Handler ---
+    const handleAuth = async (e) => {
         e.preventDefault();
-        if (!canSubmit) return;
-
-        setIsLoading(true);
+        if (!isFormValid()) return;
+        setIsActionLoading(true);
         setGlobalError("");
-        setEmailError("");
+        setErrors({});
 
-        const payload = {
-            email,
-            password,
-            full_name: fullName,
-            nationality,
-            travel_status: travelStatus,
-            arrival_date: arrivalDate || null
-        };
+        const endpoint = isLogin ? '/api/auth/login/' : '/api/auth/register/';
+        const payload = isLogin
+            ? { email, password }
+            : {
+                email,
+                password,
+                full_name: fullName,
+                nationality,
+                is_in_kenya: travelStatus === 'in-kenya',
+                expected_arrival_date: travelStatus === 'planning' ? (arrivalDate || null) : null
+            };
 
         try {
-            await api.post('/api/auth/register/', payload);
-            // On Success: Switch to OTP
-            setShowOTP(true);
-            setResendTimer(60); // Start timer
+            const response = await api.post(endpoint, payload);
+
+            if (isLogin) {
+                const { token, user: userData } = response.data;
+                // Add verification flow even for login if needed, but user asked for handleVerifyOTP
+                login(token, userData);
+                navigate(userData.is_in_kenya ? '/dashboard' : '/travel-guide');
+            } else {
+                // For signup, we transition to OTP
+                setShowOTP(true);
+                setResendTimer(60);
+            }
         } catch (err) {
             console.error(err);
-            if (err.response) {
-                if (err.response.status === 400 && err.response.data.email) {
-                    setEmailError("This email is already registered.");
-                } else if (err.response.status === 500) {
-                    setGlobalError("Something went wrong on our end. Please try again later.");
-                } else {
-                    setGlobalError(err.response.data.detail || "Registration failed. Please check your inputs.");
-                }
+            if (err.response && err.response.status === 400) {
+                // Field-specific errors from backend
+                setErrors(err.response.data);
+            } else if (err.response?.status === 401) {
+                setGlobalError("Incorrect Password or Email.");
+            } else if (err.response && err.response.status === 403 && isLogin) {
+                setGlobalError("Please verify your email first.");
+                setShowOTP(true);
             } else {
-                setGlobalError("Network error. Please check your connection.");
+                setErrors({ global: "Connection error. Please try again." });
             }
         } finally {
-            setIsLoading(false);
+            setIsActionLoading(false);
         }
     };
 
     const handleVerifyOTP = async (code) => {
-        setIsLoading(true);
+        setIsActionLoading(true);
         setOtpError(false);
         setOtpMessage("");
 
         try {
-            const response = await api.post('/api/auth/verify-otp/', { email, otp: code }); // Send 'otp' key
+            const response = await api.post('/api/auth/verify-otp/', { email, otp: code });
+            const { token, user: userData } = response.data;
 
-            // Save Tokens if returned
-            if (response.data.access_token) {
-                localStorage.setItem('access_token', response.data.access_token);
-            }
+            // Trigger Full Screen Loading Overlay
+            setIsVerifying(true);
 
-            // Smart Redirect
-            navigate(travelStatus === 'in-kenya' ? '/dashboard' : '/travel-guide');
+            // Synthetic Delay for "Pro" feel
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            login(token, userData);
+            navigate(userData.is_in_kenya ? '/dashboard' : '/travel-guide');
         } catch (err) {
-            console.error(err);
-            setOtpError(true); // Shake animation
-            const msg = err.response?.data?.otp?.[0] || err.response?.data?.detail || "Invalid verification code.";
+            setOtpError(true);
+            const msg = err.response?.data?.error || "Invalid code.";
             setOtpMessage(msg);
+            setIsVerifying(false);
         } finally {
-            setIsLoading(false);
+            setIsActionLoading(false);
         }
     };
 
     const handleResendCode = async () => {
         if (resendTimer > 0) return;
         setResendTimer(60);
-        // Call resend API here (mock or real)
-        // await api.post('/aut/resend-code', { email });
-        console.log("Resending code to", email);
+        try {
+            await api.post('/api/auth/resend-otp/', { email });
+        } catch {
+            setOtpMessage("Failed to resend code.");
+        }
     };
 
-
     return (
-        <div className="min-h-screen w-full flex bg-neutral-950 font-sans text-white overflow-hidden">
+        <div className="min-h-screen w-full flex bg-neutral-950 font-sans text-white overflow-hidden relative">
 
-            {/* --- Left Side (Desktop Only) --- */}
-            <div className="hidden md:block w-[40%] relative">
+            {/* Verification Overlay */}
+            <AnimatePresence>
+                {isVerifying && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-neutral-950/80 backdrop-blur-xl"
+                    >
+                        <div className="relative">
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                                className="w-24 h-24 rounded-full border-t-2 border-r-2 border-orange-500 shadow-[0_0_20px_rgba(249,115,22,0.3)]"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <motion.div
+                                    animate={{ scale: [1, 1.2, 1] }}
+                                    transition={{ duration: 1.5, repeat: Infinity }}
+                                    className="w-4 h-4 bg-orange-500 rounded-full"
+                                />
+                            </div>
+                        </div>
+                        <motion.div
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                            className="mt-8 text-center"
+                        >
+                            <h3 className="text-2xl font-black text-white mb-2 tracking-tighter">Preparing Your Journey</h3>
+                            <p className="text-neutral-500 font-medium">Verifying your credentials...</p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* --- Left Side: Hero Image (Desktop Only) --- */}
+            <div className="hidden md:block w-[45%] relative">
                 <div className="absolute inset-0">
-                    <img src={heroBg} className="w-full h-full object-cover" alt="Kenya Wildlife" />
-                    <div className="absolute inset-0 bg-black/40" />
+                    <img src={loginSignupImg} className="w-full h-full object-cover" alt="Kenya Travel & Culture" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent" />
                 </div>
-                <div className="absolute bottom-16 left-12 z-20">
-                    <h1 className="text-6xl font-black text-white drop-shadow-2xl leading-none">
-                        Experience<br />Kenya
-                    </h1>
+                {/* Hero Overlay Text */}
+                <div className="absolute bottom-12 left-12 z-20">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                    >
+                        <h1 className="text-6xl font-black text-white leading-none drop-shadow-2xl">
+                            Travel with<br />
+                            <span className="text-orange-500">Confidence</span>
+                        </h1>
+                        <p className="mt-4 text-neutral-300 text-lg font-medium max-w-xs drop-shadow-md font-serif italic">
+                            The Zuru way. Simplified.
+                        </p>
+                    </motion.div>
                 </div>
             </div>
 
-            {/* --- Right Side / Mobile Full --- */}
+            {/* --- Right Side: Auth Form --- */}
             <div className="flex-1 flex flex-col h-screen overflow-y-auto bg-neutral-950">
 
                 {/* Mobile Header (Hidden on Desktop) */}
-                <div className="md:hidden pt-8 px-6 pb-4">
-                    <h1 className="text-2xl font-bold text-white">
-                        Begin Your<br />
-                        <span className="text-orange-500">Zuru Journey</span>
+                <div className="md:hidden pt-12 px-8 flex justify-between items-center">
+                    <h1 className="text-3xl font-black text-white">
+                        Zuru<span className="text-orange-500">.</span>
                     </h1>
                 </div>
 
-                <div className="flex-1 flex items-center justify-center p-4 md:p-12">
-                    <div className="w-full max-w-lg">
+                <div className="flex-1 flex items-center justify-center p-6 md:p-12">
+                    <div className="w-full max-w-sm">
 
-                        {/* Back Button for OTP */}
+                        {/* OTP Flow Header */}
                         {showOTP && (
                             <button
                                 onClick={() => setShowOTP(false)}
                                 className="mb-6 flex items-center gap-2 text-neutral-400 hover:text-white transition-colors text-sm font-medium"
                             >
                                 <ArrowLeft className="w-4 h-4" />
-                                Back
+                                Back to {isLogin ? 'Login' : 'Signup'}
                             </button>
                         )}
 
-                        {/* Dynamic Header */}
-                        <div className="mb-8 hidden md:block">
-                            <h2 className="text-3xl font-bold mb-2">
-                                {showOTP ? "Verify Email" : (isLogin ? "Welcome Back" : "Create Account")}
+                        {/* Title Header */}
+                        <div className="mb-8">
+                            <h2 className="text-3xl font-bold mb-2 tracking-tight">
+                                {showOTP ? "Verify Email" : (isLogin ? "Welcome Back" : "Join Zuru")}
                             </h2>
-                            <p className="text-neutral-400">
-                                {showOTP ? `Code sent to ${email}` : (isLogin ? "Enter your details to sign in." : "Join us and explore everything Kenya.")}
+                            <p className="text-neutral-400 text-sm">
+                                {showOTP ? `We sent a code to ${email}` : (isLogin ? "Sign in to continue." : "Your digital bridge to Kenya.")}
                             </p>
                         </div>
 
                         {/* Global Error Alert */}
                         <AnimatePresence>
-                            {globalError && (
+                            {(globalError || errors.global) && (
                                 <motion.div
                                     initial={{ height: 0, opacity: 0 }}
                                     animate={{ height: "auto", opacity: 1 }}
                                     exit={{ height: 0, opacity: 0 }}
-                                    className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex gap-3 text-red-200 text-sm font-medium mb-6"
+                                    className="bg-red-500/10 border border-red-500/50 rounded-2xl p-4 flex gap-3 text-red-200 text-sm font-medium mb-6"
                                 >
                                     <X className="w-5 h-5 flex-shrink-0" />
-                                    {globalError}
+                                    {globalError || errors.global}
                                 </motion.div>
                             )}
                         </AnimatePresence>
-
 
                         {showOTP ? (
                             <div className="space-y-8">
@@ -345,85 +388,78 @@ const AuthPage = () => {
                                         onComplete={handleVerifyOTP}
                                         error={otpError}
                                     />
-                                    {/* OTP Error Message */}
-                                    {otpMessage && <p className="text-red-500 text-sm mt-4 font-medium">{otpMessage}</p>}
+                                    {otpMessage && (
+                                        <motion.p
+                                            initial={{ opacity: 0 }}
+                                            animate={{ opacity: 1 }}
+                                            className="text-red-500 text-xs mt-4 font-semibold"
+                                        >
+                                            {otpMessage}
+                                        </motion.p>
+                                    )}
                                 </div>
 
                                 <div className="text-center space-y-4">
-                                    <div className="flex items-center justify-center gap-2">
-                                        <button
-                                            disabled={resendTimer > 0 || isLoading}
-                                            onClick={handleResendCode}
-                                            className={`font-semibold flex items-center gap-2 transition-colors ${resendTimer > 0 ? 'text-neutral-600 cursor-not-allowed' : 'text-white hover:text-orange-500'
-                                                }`}
-                                        >
-                                            {resendTimer > 0 && <Timer className="w-4 h-4" />}
-                                            {resendTimer > 0 ? `Resend Code in ${resendTimer}s` : "Resend Verification Code"}
-                                        </button>
-                                    </div>
                                     <button
-                                        disabled={isLoading}
-                                        onClick={() => setShowOTP(false)}
-                                        className="text-neutral-500 hover:text-white transition-colors text-sm"
+                                        disabled={resendTimer > 0 || isActionLoading}
+                                        onClick={handleResendCode}
+                                        className={`font-semibold flex items-center justify-center gap-2 mx-auto transition-colors ${resendTimer > 0 ? 'text-neutral-600' : 'text-orange-500 hover:text-orange-400'}`}
                                     >
-                                        Change Email
+                                        {resendTimer > 0 && <Timer className="w-4 h-4" />}
+                                        {resendTimer > 0 ? `Resend in ${resendTimer}s` : "Resend Code"}
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <form onSubmit={isLogin ? handleLogin : handleSignup} className="space-y-4">
-                                {/* --- Signup Only Fields --- */}
+                            <form onSubmit={handleAuth} className="space-y-4">
                                 {!isLogin && (
                                     <>
-                                        <div className="relative group">
-                                            <User className="absolute left-4 top-4 w-6 h-6 text-neutral-500" />
+                                        {/* Full Name */}
+                                        <div className="relative">
+                                            <User className="absolute left-4 top-4 w-5 h-5 text-neutral-500" />
                                             <input
                                                 type="text"
                                                 placeholder="Full Name"
-                                                className="w-full h-14 bg-neutral-900 border border-neutral-800 rounded-2xl pl-14 pr-4 text-lg text-white placeholder-neutral-600 focus:outline-none focus:border-orange-500 transition-all"
+                                                className="w-full h-14 bg-neutral-900 border border-neutral-800 rounded-2xl pl-12 pr-4 text-white focus:outline-none focus:border-orange-500 transition-all font-medium text-sm"
                                                 value={fullName}
                                                 onChange={e => setFullName(e.target.value)}
                                             />
                                         </div>
 
-                                        <div className="relative group">
-                                            <Globe className="absolute left-4 top-4 w-6 h-6 text-neutral-500" />
+                                        {/* Nationality */}
+                                        <div className="relative">
+                                            <Globe className="absolute left-4 top-4 w-5 h-5 text-neutral-500" />
                                             <select
-                                                className="w-full h-14 bg-neutral-900 border border-neutral-800 rounded-2xl pl-14 pr-4 text-lg text-white placeholder-neutral-600 focus:outline-none focus:border-orange-500 transition-all appearance-none cursor-pointer"
+                                                className="w-full h-14 bg-neutral-900 border border-neutral-800 rounded-2xl pl-12 pr-10 text-white focus:outline-none focus:border-orange-500 appearance-none font-medium text-sm"
                                                 value={nationality}
                                                 onChange={e => setNationality(e.target.value)}
                                             >
-                                                <option value="" disabled>Nationality</option>
+                                                <option value="" disabled>Select Nationality</option>
                                                 {APPROVED_COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
                                             </select>
                                         </div>
 
-                                        {/* Travel Toggle */}
-                                        <div className="grid grid-cols-2 gap-4 my-2">
+                                        {/* Travel Status Toggle */}
+                                        <div className="grid grid-cols-2 gap-3">
                                             <button
                                                 type="button"
                                                 onClick={() => setTravelStatus('in-kenya')}
-                                                className={`h-14 rounded-2xl border flex items-center justify-center gap-2 transition-all ${travelStatus === 'in-kenya'
-                                                    ? 'bg-orange-500/10 border-orange-500 text-orange-400'
-                                                    : 'bg-neutral-900 border-neutral-800 text-neutral-500'
-                                                    }`}
+                                                className={`h-14 rounded-2xl border flex items-center justify-center gap-2 transition-all ${travelStatus === 'in-kenya' ? 'bg-orange-500/10 border-orange-500 text-orange-400' : 'bg-neutral-900 border-neutral-800 text-neutral-500'}`}
                                             >
-                                                <MapPin className="w-5 h-5" />
-                                                <span className="font-bold">I'm in Kenya 🇰🇪</span>
+                                                <MapPin className="w-4 h-4" />
+                                                <span className="font-bold text-xs uppercase tracking-wider">I'm Home 🇰🇪</span>
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setTravelStatus('planning')}
-                                                className={`h-14 rounded-2xl border flex items-center justify-center gap-2 transition-all ${travelStatus === 'planning'
-                                                    ? 'bg-teal-500/10 border-teal-500 text-teal-400'
-                                                    : 'bg-neutral-900 border-neutral-800 text-neutral-500'
-                                                    }`}
+                                                className={`h-14 rounded-2xl border flex items-center justify-center gap-2 transition-all ${travelStatus === 'planning' ? 'bg-teal-500/10 border-teal-500 text-teal-400' : 'bg-neutral-900 border-neutral-800 text-neutral-500'}`}
                                             >
-                                                <Plane className="w-5 h-5" />
-                                                <span className="font-bold">Planning Trip ✈️</span>
+                                                <Plane className="w-4 h-4" />
+                                                <span className="font-bold text-xs uppercase tracking-wider">Planning ✈️</span>
                                             </button>
                                         </div>
 
+                                        {/* Arrival Date */}
                                         <AnimatePresence>
                                             {travelStatus === 'planning' && (
                                                 <motion.div
@@ -432,12 +468,12 @@ const AuthPage = () => {
                                                     exit={{ height: 0, opacity: 0 }}
                                                     className="overflow-hidden"
                                                 >
-                                                    <div className="relative group mb-1">
-                                                        <Calendar className="absolute left-4 top-4 w-6 h-6 text-neutral-500" />
+                                                    <div className="relative py-1">
+                                                        <Calendar className="absolute left-4 top-5 w-5 h-5 text-neutral-500" />
                                                         <input
                                                             type="date"
                                                             min={today}
-                                                            className="w-full h-14 bg-neutral-900 border border-neutral-800 rounded-2xl pl-14 pr-4 text-lg text-white placeholder-neutral-600 focus:outline-none focus:border-teal-500 transition-all"
+                                                            className="w-full h-14 bg-neutral-900 border border-neutral-800 rounded-2xl pl-12 pr-4 text-white focus:outline-none focus:border-teal-500 transition-all font-medium text-sm"
                                                             value={arrivalDate}
                                                             onChange={e => setArrivalDate(e.target.value)}
                                                             style={{ colorScheme: 'dark' }}
@@ -449,89 +485,84 @@ const AuthPage = () => {
                                     </>
                                 )}
 
-                                {/* --- Common Fields --- */}
-                                <div className="relative group">
-                                    <Mail className={`absolute left-4 top-4 w-6 h-6 ${emailError ? 'text-red-500' : 'text-neutral-500'}`} />
+                                {/* Email */}
+                                <div className="relative">
+                                    <Mail className={`absolute left-4 top-4 w-5 h-5 ${errors.email ? 'text-red-500' : 'text-neutral-500'}`} />
                                     <input
                                         type="email"
                                         placeholder="Email Address"
-                                        className={`w-full h-14 bg-neutral-900 border rounded-2xl pl-14 pr-4 text-lg text-white placeholder-neutral-600 focus:outline-none transition-all
-                                            ${emailError
-                                                ? 'border-red-500 focus:border-red-500'
-                                                : 'border-neutral-800 focus:border-orange-500'}`}
+                                        className={`w-full h-14 bg-neutral-900 border rounded-2xl pl-12 pr-4 text-white focus:outline-none transition-all font-medium text-sm ${errors.email ? 'border-red-500' : 'border-neutral-800 focus:border-orange-500'}`}
                                         value={email}
-                                        onChange={e => {
-                                            setEmail(e.target.value);
-                                            setEmailError("");
-                                            setGlobalError("");
-                                        }}
+                                        onChange={e => { setEmail(e.target.value); setErrors(prev => ({ ...prev, email: null })); }}
                                     />
-                                    {emailError && <p className="text-red-500 text-sm mt-2 ml-1">{emailError}</p>}
+                                    {errors.email && (
+                                        <p className="text-red-500 text-[10px] mt-1.5 ml-1 font-semibold uppercase tracking-wider">
+                                            {Array.isArray(errors.email) ? errors.email[0] : errors.email}
+                                        </p>
+                                    )}
                                 </div>
 
-                                <div className="relative group">
-                                    <Lock className="absolute left-4 top-4 w-6 h-6 text-neutral-500" />
+                                {/* Password */}
+                                <div className="relative">
+                                    <Lock className="absolute left-4 top-4 w-5 h-5 text-neutral-500" />
                                     <input
                                         type={showPassword ? "text" : "password"}
                                         placeholder="Password"
-                                        className="w-full h-14 bg-neutral-900 border border-neutral-800 rounded-2xl pl-14 pr-12 text-lg text-white placeholder-neutral-600 focus:outline-none focus:border-orange-500 transition-all"
+                                        className="w-full h-14 bg-neutral-900 border border-neutral-800 rounded-2xl pl-12 pr-12 text-white focus:outline-none focus:border-orange-500 font-medium text-sm"
                                         value={password}
                                         onChange={e => setPassword(e.target.value)}
                                     />
                                     <button
                                         type="button"
                                         onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-4 top-4 text-neutral-500 hover:text-white"
+                                        className="absolute right-4 top-4 text-neutral-500"
                                     >
-                                        {showPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
+                                        {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                     </button>
                                 </div>
 
                                 {!isLogin && (
                                     <>
-                                        {/* Password Checklist */}
                                         <PasswordChecklist password={password} />
 
-                                        <div className="relative group mt-2">
-                                            <Lock className="absolute left-4 top-4 w-6 h-6 text-neutral-500" />
+                                        {/* Confirm Password */}
+                                        <div className="relative mt-2">
+                                            <Lock className="absolute left-4 top-4 w-5 h-5 text-neutral-500" />
                                             <input
                                                 type={showConfirmPassword ? "text" : "password"}
                                                 placeholder="Confirm Password"
-                                                className={`w-full h-14 bg-neutral-900 border rounded-2xl pl-14 pr-12 text-lg text-white placeholder-neutral-600 focus:outline-none transition-all
-                                                    ${confirmPassword && !isMatch ? 'border-red-500 focus:border-red-500' : 'border-neutral-800 focus:border-orange-500'}`}
+                                                className={`w-full h-14 bg-neutral-900 border rounded-2xl pl-12 pr-12 text-white focus:outline-none font-medium text-sm ${confirmPassword && !isMatch ? 'border-red-500' : 'border-neutral-800 focus:border-orange-500'}`}
                                                 value={confirmPassword}
                                                 onChange={e => setConfirmPassword(e.target.value)}
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                                className="absolute right-4 top-4 text-neutral-500 hover:text-white"
+                                                className="absolute right-4 top-4 text-neutral-500"
                                             >
-                                                {showConfirmPassword ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
+                                                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                                             </button>
                                         </div>
                                     </>
                                 )}
 
+                                {/* Submit Button */}
                                 <button
                                     type="submit"
-                                    disabled={isLoading || (!isLogin && !canSubmit)}
-                                    className={`w-full h-14 rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 mt-6 transition-all
-                                        ${isLoading || (!isLogin && !canSubmit)
-                                            ? 'bg-neutral-800 text-neutral-500 cursor-not-allowed opacity-50'
-                                            : 'bg-gradient-to-r from-orange-600 to-red-600 text-white hover:shadow-orange-900/40 active:scale-[0.98]'
-                                        }`}
+                                    disabled={isActionLoading || !isFormValid()}
+                                    className={`w-full h-14 rounded-2xl font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 mt-6 transition-all ${isActionLoading || !isFormValid() ? 'bg-neutral-800 text-neutral-600 cursor-not-allowed' : 'bg-gradient-to-r from-orange-600 to-red-600 text-white hover:brightness-110 active:scale-[0.98] shadow-lg shadow-orange-900/40'}`}
                                 >
-                                    {isLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : (isLogin ? "Sign In" : "Create Account")}
+                                    {isActionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : (isLogin ? "Sign In" : "Get Started")}
                                 </button>
                             </form>
                         )}
 
-                        <div className="mt-8 text-center pb-8 md:pb-0">
-                            <p className="text-neutral-500">
-                                {isLogin ? "New to Zuru?" : "Already member?"}
-                                <button onClick={toggleMode} className="ml-2 text-white font-bold hover:underline">
-                                    {isLogin ? "Create Account" : "Sign In"}
+                        {/* Toggle Link */}
+                        <div className="mt-8 text-center">
+                            <p className="text-neutral-500 text-xs font-medium uppercase tracking-wider">
+                                {isLogin ? "Don't have an account?" : "Already joined Zuru?"}
+                                <button onClick={toggleMode} className="ml-2 text-white font-black hover:text-orange-500 transition-colors underline decoration-orange-500 underline-offset-4">
+                                    {isLogin ? "Register Now" : "Sign In"}
                                 </button>
                             </p>
                         </div>

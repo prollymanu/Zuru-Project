@@ -4,8 +4,10 @@ from .views import (
     VerifyOTPView, 
     ResendOTPView, 
     LoginView, 
+    LogoutView,
+    UserProfileView,
     UpdateArrivalStatusView, 
-    UpdateChecklistView
+    TravelChecklistView
 )
 
 urlpatterns = [
@@ -13,8 +15,10 @@ urlpatterns = [
     path('verify-otp/', VerifyOTPView.as_view(), name='verify-otp'),
     path('resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('login/', LoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
+    path('profile/', UserProfileView.as_view(), name='profile'),
     
     # Business Logic Paths
     path('update-arrival-status/', UpdateArrivalStatusView.as_view(), name='update-status'),
-    path('update-checklist/', UpdateChecklistView.as_view(), name='update-checklist'),
+    path('checklist/', TravelChecklistView.as_view(), name='checklist'),
 ]

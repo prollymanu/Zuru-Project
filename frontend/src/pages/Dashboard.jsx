@@ -1,63 +1,218 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Wallet, Car, Utensils, Mountain, PartyPopper, Scale, Ambulance, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import {
+    Wallet, Utensils, Sunset, BedDouble,
+    Home, Key, Shirt, CarTaxiFront, X, Bell,
+    Sparkles, Info, Scale, Siren, Loader2
+} from 'lucide-react';
+import DashboardLayout from '../layouts/DashboardLayout';
+import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
+    const { user } = useAuth();
     const navigate = useNavigate();
-    const user = { name: "Traveler" }; // Placeholder
+    const [isLoading, setIsLoading] = useState(false);
+    const [loadingService, setLoadingService] = useState(null);
 
     const services = [
-        { title: "My Wallet", icon: Wallet, color: "from-orange-500 to-red-500" },
-        { title: "Book a Cab", icon: Car, color: "from-blue-500 to-indigo-500" },
-        { title: "Order Food", icon: Utensils, color: "from-pink-500 to-rose-500" },
-        { title: "Safari Packages", icon: Mountain, color: "from-green-500 to-lime-500" },
-        { title: "Nightlife", icon: PartyPopper, color: "from-purple-500 to-violet-500" },
-        { title: "Legal Aid", icon: Scale, color: "from-yellow-500 to-amber-500" },
-        { title: "Emergency", icon: Ambulance, color: "from-red-500 to-red-700" },
+        {
+            title: "Digital Wallet",
+            icon: Wallet,
+            color: "from-purple-500 to-indigo-600",
+            image: "https://images.unsplash.com/photo-1580519542036-c47de6196ba5?auto=format&fit=crop&q=80&w=800",
+            path: "/wallet"
+        },
+        {
+            title: "Restaurants & Dining",
+            icon: Utensils,
+            color: "from-orange-500 to-red-600",
+            image: "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/upscale_nairobi_dining_1771289105674.png",
+            path: "/restaurants"
+        },
+        {
+            title: "Hotels & Resorts",
+            icon: Sunset,
+            color: "from-cyan-500 to-blue-600",
+            image: "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/diani_luxury_resort_1771289120076.png",
+            path: "/hotels"
+        },
+        {
+            title: "BnBs & Short Stays",
+            icon: BedDouble,
+            color: "from-rose-500 to-pink-600",
+            image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800",
+            path: "/short-stays"
+        },
+        {
+            title: "Long-Term Housing",
+            icon: Home,
+            color: "from-emerald-500 to-teal-600",
+            image: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800",
+            path: "/housing"
+        },
+        {
+            title: "Emergency Services",
+            icon: Siren,
+            color: "from-red-600 to-rose-700",
+            image: "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/emergency_ambulance_kenya_1771289075611.png",
+            path: "/emergency"
+        },
+        {
+            title: "Legal Services",
+            icon: Scale,
+            color: "from-indigo-500 to-blue-600",
+            image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800",
+            path: "/legal"
+        },
+        {
+            title: "Car Hire & Rental",
+            icon: Key,
+            color: "from-slate-500 to-zinc-600",
+            image: "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/kenyan_highway_mobility_1771289143905.png",
+            path: "/car-hire"
+        },
+        {
+            title: "Laundry & Dry Cleaning",
+            icon: Shirt,
+            color: "from-blue-500 to-sky-600",
+            image: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&q=80&w=800",
+            path: "/laundry"
+        },
+        {
+            title: "Book a Cab",
+            icon: CarTaxiFront,
+            color: "from-yellow-400 to-orange-500",
+            image: "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/nairobi_city_taxi_1771289090074.png",
+            path: "/cabs"
+        },
     ];
 
-    return (
-        <div className="min-h-screen bg-neutral-950 text-white font-sans p-6 md:p-12">
-            <header className="flex justify-between items-center mb-12">
-                <div>
-                    <h1 className="text-3xl md:text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-400 to-teal-400 mb-2">
-                        Welcome Home, {user.name}.
-                    </h1>
-                    <p className="text-neutral-400 text-sm">Your Zuru Mission Control.</p>
-                </div>
-                <button
-                    onClick={() => navigate('/')}
-                    className="p-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors"
-                >
-                    <LogOut className="w-5 h-5 text-neutral-400" />
-                </button>
-            </header>
+    const handleServiceClick = (service) => {
+        setIsLoading(true);
+        setLoadingService(service);
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {services.map((s, i) => (
+        // Simulating processing delay for "Heavy" deliberate feel
+        setTimeout(() => {
+            navigate(service.path, { state: { serviceName: service.title } });
+        }, 900);
+    };
+
+    return (
+        <DashboardLayout>
+            {/* Immersive Zuru Loader Overlay */}
+            <AnimatePresence>
+                {isLoading && (
                     <motion.div
-                        key={i}
-                        whileHover={{ scale: 1.05, y: -5 }}
-                        className="group relative p-6 rounded-3xl bg-neutral-900/50 border border-white/5 backdrop-blur-xl overflow-hidden cursor-pointer"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center"
                     >
-                        <div className={`absolute -right-10 -top-10 w-32 h-32 bg-gradient-to-br ${s.color} opacity-10 blur-3xl group-hover:opacity-20 transition-opacity duration-500`} />
-                        <div className="relative z-10 flex flex-col h-full justify-between gap-6">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 group-hover:scale-110 transition-transform duration-300`}>
-                                <s.icon className="w-6 h-6 text-white" />
+                        <motion.div
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="relative flex flex-col items-center"
+                        >
+                            {/* Animated Rings */}
+                            <motion.div
+                                animate={{ rotate: 360 }}
+                                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+                                className="w-32 h-32 border-2 border-orange-500/20 rounded-full border-t-orange-500 shadow-[0_0_50px_rgba(249,115,22,0.2)]"
+                            />
+
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                <motion.div
+                                    animate={{ scale: [1, 1.1, 1] }}
+                                    transition={{ duration: 1, repeat: Infinity }}
+                                    className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${loadingService?.color} flex items-center justify-center text-white shadow-2xl`}
+                                >
+                                    {loadingService && <loadingService.icon className="w-6 h-6" strokeWidth={2.5} />}
+                                </motion.div>
                             </div>
-                            <div>
-                                <h3 className="text-lg font-bold text-white mb-1 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-white group-hover:to-neutral-400 transition-all">
-                                    {s.title}
-                                </h3>
-                                <p className="text-xs text-neutral-500">Access Now</p>
-                            </div>
-                        </div>
+
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="mt-8 text-center"
+                            >
+                                <h2 className="text-white font-black text-xl tracking-tighter uppercase mb-2">
+                                    Initializing {loadingService?.title}...
+                                </h2>
+                                <div className="flex items-center justify-center gap-2 text-neutral-500 font-bold text-[10px] tracking-[0.2em] uppercase">
+                                    <Loader2 className="w-3 h-3 animate-spin" />
+                                    <span>Syncing with Mission Control</span>
+                                </div>
+                            </motion.div>
+                        </motion.div>
                     </motion.div>
-                ))}
+                )}
+            </AnimatePresence>
+
+            <div className="space-y-8 pb-10 px-2 sm:px-0">
+                <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex flex-col gap-1"
+                >
+                    <h1 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
+                        Habari, {user?.full_name?.split(' ')[0] || "Traveler"}.
+                    </h1>
+                    <p className="text-neutral-500 font-black uppercase tracking-[0.3em] text-[10px]">
+                        {user?.is_in_kenya ? "Kenyan Mission Control" : "Voyage Preparation"}
+                    </p>
+                </motion.div>
+
+                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-6">
+                    <AnimatePresence>
+                        {services.map((s, i) => (
+                            <motion.div
+                                key={s.title}
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: i * 0.05 }}
+                                whileHover={{ y: -8 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => handleServiceClick(s)}
+                                className="group relative h-40 md:h-52 rounded-[2rem] overflow-hidden cursor-pointer shadow-2xl transition-all duration-500"
+                            >
+                                {/* Background Image with Zoom */}
+                                <motion.img
+                                    src={s.image}
+                                    alt={s.title}
+                                    className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-110 transition-transform duration-700 ease-out"
+                                />
+
+                                {/* Depth Gradient */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90" />
+
+                                {/* Highlight Border */}
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:via-white/50 transition-all duration-300" />
+
+                                {/* Content */}
+                                <div className="relative z-10 p-5 md:p-6 h-full flex flex-col justify-between">
+                                    <div className={`w-10 h-10 md:w-12 md:h-12 rounded-2xl bg-gradient-to-br ${s.color} flex items-center justify-center text-white shadow-xl group-hover:rotate-[10deg] transition-transform duration-500`}>
+                                        <s.icon className="w-5 h-5 md:w-6 md:h-6" strokeWidth={2.5} />
+                                    </div>
+
+                                    <div>
+                                        <h3 className="text-sm md:text-lg font-black text-white leading-tight tracking-tight">
+                                            {s.title}
+                                        </h3>
+                                        <p className="text-[10px] md:text-xs text-neutral-400 font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                                            Access Service
+                                        </p>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ))}
+                    </AnimatePresence>
+                </div>
             </div>
-        </div>
+        </DashboardLayout>
     );
 };
 
 export default Dashboard;
+

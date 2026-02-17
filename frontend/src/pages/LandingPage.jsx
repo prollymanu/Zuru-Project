@@ -236,7 +236,7 @@ const ServiceCard = ({ icon: Icon, title, colorClass, span = "col-span-1" }) => 
         <div className={`absolute -right-20 -top-20 w-60 h-60 bg-gradient-to-br ${colorClass} opacity-5 blur-3xl group-hover:opacity-15 transition-opacity duration-500`} />
 
         <div className="relative z-10 flex flex-col h-full justify-between gap-12">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 group-hover:scale-110 transition-transform duration-300`}>
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/5 border border-white/10 group-hover:scale-110 transition-transform duration-300">
                 <Icon className="w-7 h-7 text-white" />
             </div>
             <div>
@@ -287,15 +287,17 @@ const ServicesSection = () => {
                     viewport={{ once: true, margin: "-100px" }}
                     className="grid grid-cols-1 md:grid-cols-4 gap-6"
                 >
-                    {services.map((s, i) => (
-                        <ServiceCard
-                            key={i}
-                            title={s.title}
-                            icon={s.icon}
-                            colorClass={s.color}
-                            span={s.span || "col-span-1"}
-                        />
-                    ))}
+                    <AnimatePresence>
+                        {services.map((s, i) => (
+                            <ServiceCard
+                                key={i}
+                                title={s.title}
+                                icon={s.icon}
+                                colorClass={s.color}
+                                span={s.span || "col-span-1"}
+                            />
+                        ))}
+                    </AnimatePresence>
                 </motion.div>
             </div>
         </section>

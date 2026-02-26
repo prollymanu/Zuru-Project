@@ -15,75 +15,79 @@ const Dashboard = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [loadingService, setLoadingService] = useState(null);
 
+    const handleImageError = (e) => {
+        e.target.src = "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&q=80&w=800";
+    };
+
     const services = [
         {
             title: "Digital Wallet",
             icon: Wallet,
             color: "from-purple-500 to-indigo-600",
-            image: "https://images.unsplash.com/photo-1580519542036-c47de6196ba5?auto=format&fit=crop&q=80&w=800",
+            image: "https://images.unsplash.com/photo-1580519542036-c47de6196ba5?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
             path: "/wallet"
         },
         {
             title: "Restaurants & Dining",
             icon: Utensils,
             color: "from-orange-500 to-red-600",
-            image: "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/upscale_nairobi_dining_1771289105674.png",
-            path: "/restaurants"
+            image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+            path: "/listings/restaurants"
         },
         {
             title: "Hotels & Resorts",
             icon: Sunset,
             color: "from-cyan-500 to-blue-600",
-            image: "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/diani_luxury_resort_1771289120076.png",
-            path: "/hotels"
+            image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
+            path: "/listings/hotels"
         },
         {
             title: "BnBs & Short Stays",
             icon: BedDouble,
             color: "from-rose-500 to-pink-600",
-            image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800",
+            image: "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
             path: "/short-stays"
         },
         {
             title: "Long-Term Housing",
             icon: Home,
             color: "from-emerald-500 to-teal-600",
-            image: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800",
+            image: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&w=800&q=80",
             path: "/housing"
         },
         {
             title: "Emergency Services",
             icon: Siren,
             color: "from-red-600 to-rose-700",
-            image: "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/emergency_ambulance_kenya_1771289075611.png",
+            image: "https://images.unsplash.com/photo-1516550893923-42d28e5677af?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
             path: "/emergency"
         },
         {
             title: "Legal Services",
             icon: Scale,
             color: "from-indigo-500 to-blue-600",
-            image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800",
+            image: "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&w=800&q=80",
             path: "/legal"
         },
         {
             title: "Car Hire & Rental",
             icon: Key,
             color: "from-slate-500 to-zinc-600",
-            image: "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/kenyan_highway_mobility_1771289143905.png",
+            image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
             path: "/car-hire"
         },
         {
             title: "Laundry & Dry Cleaning",
             icon: Shirt,
             color: "from-blue-500 to-sky-600",
-            image: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&q=80&w=800",
+            image: "https://images.unsplash.com/photo-1517677208171-0bc6725a3e60?auto=format&fit=crop&w=800&q=80",
             path: "/laundry"
         },
         {
             title: "Book a Cab",
             icon: CarTaxiFront,
             color: "from-yellow-400 to-orange-500",
-            image: "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/nairobi_city_taxi_1771289090074.png",
+            image: "https://images.unsplash.com/photo-1556122071-e404be745793?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80",
             path: "/cabs"
         },
     ];
@@ -181,6 +185,7 @@ const Dashboard = () => {
                                 <motion.img
                                     src={s.image}
                                     alt={s.title}
+                                    onError={handleImageError}
                                     className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-110 transition-transform duration-700 ease-out"
                                 />
 

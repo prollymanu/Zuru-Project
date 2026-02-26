@@ -7,6 +7,10 @@ import Dashboard from './pages/Dashboard';
 import TravelGuide from './pages/TravelGuide';
 import WalletPage from './pages/WalletPage';
 import ServiceComingSoon from './pages/ServiceComingSoon';
+import RestaurantHome from './pages/listings/RestaurantHome';
+import RestaurantDetail from './pages/listings/RestaurantDetail';
+import HotelHome from './pages/listings/HotelHome';
+import HotelDetail from './pages/listings/HotelDetail';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import useIdleTimer from './hooks/useIdleTimer';
 
@@ -86,8 +90,10 @@ const AppContent = () => {
           </ProtectedRoute>
         }
       />
-      <Route path="/restaurants" element={<ProtectedRoute><ServiceComingSoon /></ProtectedRoute>} />
-      <Route path="/hotels" element={<ProtectedRoute><ServiceComingSoon /></ProtectedRoute>} />
+      <Route path="/listings/restaurants" element={<ProtectedRoute><RestaurantHome /></ProtectedRoute>} />
+      <Route path="/listings/restaurants/:id" element={<ProtectedRoute><RestaurantDetail /></ProtectedRoute>} />
+      <Route path="/listings/hotels" element={<ProtectedRoute><HotelHome /></ProtectedRoute>} />
+      <Route path="/listings/hotels/:id" element={<ProtectedRoute><HotelDetail /></ProtectedRoute>} />
       <Route path="/short-stays" element={<ProtectedRoute><ServiceComingSoon /></ProtectedRoute>} />
       <Route path="/housing" element={<ProtectedRoute><ServiceComingSoon /></ProtectedRoute>} />
       <Route path="/legal" element={<ProtectedRoute><ServiceComingSoon /></ProtectedRoute>} />

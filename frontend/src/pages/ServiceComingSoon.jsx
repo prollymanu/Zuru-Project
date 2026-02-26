@@ -4,6 +4,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Bell, Construction, Hammer, CheckCircle2 } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
 
+// Luxury Asset Imports
+import nairobiDining from '../assets/nairobi_dining.png';
+import dianiResort from '../assets/diani_resort.png';
+import emergencyKenya from '../assets/emergency_kenya.png';
+import highwayMobility from '../assets/highway_mobility.png';
+import nairobiTaxi from '../assets/nairobi_taxi.png';
+
 const ServiceComingSoon = () => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -15,13 +22,13 @@ const ServiceComingSoon = () => {
 
     // Dynamic Image Mapping based on service
     const serviceImageMap = {
-        'Restaurants & Dining': "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/upscale_nairobi_dining_1771289105674.png",
-        'Hotels & Resorts': "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/diani_luxury_resort_1771289120076.png",
+        'Restaurants & Dining': nairobiDining,
+        'Hotels & Resorts': dianiResort,
         'BnBs & Short Stays': "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&q=80&w=800",
         'Long-Term Housing': "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800",
-        'Emergency Services': "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/emergency_ambulance_kenya_1771289075611.png",
-        'Car Hire & Rental': "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/kenyan_highway_mobility_1771289143905.png",
-        'Book a Cab': "C:/Users/ADMIN/.gemini/antigravity/brain/e8c80808-cadb-438a-a924-8ef0c19ea956/nairobi_city_taxi_1771289090074.png",
+        'Emergency Services': emergencyKenya,
+        'Car Hire & Rental': highwayMobility,
+        'Book a Cab': nairobiTaxi,
         'default': "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&q=80&w=800"
     };
 

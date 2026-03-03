@@ -5,7 +5,7 @@ from django.db.models import Q
 import random
 from datetime import datetime
 from .models import Restaurant
-from .services import MockGooglePlacesService, MockHotelService
+from .services import MockGooglePlacesService, MockHotelService, MockHousingService
 
 # --- RESTAURANT VIEWS ---
 
@@ -228,4 +228,66 @@ class HotelBookingView(APIView):
             "status": "success",
             "message": f"{booking_type.capitalize()} booking confirmed successfully!",
             "booking_reference": f"ZURU-H-{random.randint(10000, 99999)}"
+        }, status=status.HTTP_200_OK)
+
+
+# --- HOUSING VIEWS ---
+
+class HousingListView(APIView):
+    permission_classes = [permissions.AllowAny]
+    """
+    GET: List long-term housing properties with filtering.
+    """
+    def get(self, request):
+        transaction_type = request.query_params.get('transaction_type')
+        property_type = request.query_params.get('property_type')
+        vibe = request.query_params.get('vibe')
+        furnishing = request.query_params.get('furnishing')
+        location = request.query_params.get('location')
+
+        housing = MockHousingService.search_housing(
+            transaction_type=transaction_type,
+            property_type=property_type,
+            vibe=vibe,
+            furnishing=furnishing,
+            location=location
+        )
+
+        return Response(housing, status=status.HTTP_200_OK)
+
+class HousingDetailView(APIView):
+    permission_classes = [permissions.AllowAny]
+    """
+    GET: Return full details of a specific housing property.
+    """
+    def get(self, request, pk):
+        housing = MockHousingService.get_housing_by_id(pk)
+        
+        if housing:
+            return Response(housing, status=status.HTTP_200_OK)
+        return Response({"error": "Housing property not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class HousingTourBookingView(APIView):
+    permission_classes = [permissions.AllowAny]
+    """
+    POST: Mock housing tour booking.
+    """
+    def post(self, request):
+        housing_id = request.data.get('housing_id')
+        preferred_date = request.data.get('preferred_date')
+        preferred_time = request.data.get('preferred_time')
+        client_phone = request.data.get('client_phone')
+
+        if not all([housing_id, preferred_date, preferred_time, client_phone]):
+            return Response({
+                "error": "housing_id, preferred_date, preferred_time, and client_phone are required."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        housing = MockHousingService.get_housing_by_id(housing_id)
+        if not housing:
+            return Response({"error": "Housing property not found"}, status=status.HTTP_404_NOT_FOUND)
+            
+        return Response({
+            "status": "success",
+            "message": f"Tour booked successfully for {housing['title']} on {preferred_date} at {preferred_time}."
         }, status=status.HTTP_200_OK)

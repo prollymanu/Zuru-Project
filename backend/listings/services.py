@@ -329,3 +329,206 @@ class MockHotelService:
                 pass
                 
         return filtered
+
+class MockHousingService:
+    @staticmethod
+    def get_all_housing():
+        return [
+            {
+                "id": "house_1",
+                "title": "Executive Furnished Studio",
+                "property_type": "Studio",
+                "vibe": "Urban City",
+                "transaction_type": "FOR RENT",
+                "furnishing": "Fully Furnished",
+                "price": 65000, 
+                "currency": "KES",
+                "location": "Kilimani, Nairobi",
+                "distance_to_tarmac": "0.1km",
+                "security": ["Biometric Access", "CCTV", "24/7 Guards", "Electric Fence"],
+                "amenities": ["Rooftop Pool", "High-Speed WiFi", "Gym", "Backup Generator"],
+                "cover_image": "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800&q=80",
+                "gallery": [
+                    "https://images.unsplash.com/photo-1502672260266-1c1c95ed731d?w=800&q=80",
+                    "https://images.unsplash.com/photo-1556912173-3bb406ef7e77?w=800&q=80",
+                    "https://images.unsplash.com/photo-1522771731478-4eaeb06fc99d?w=800&q=80",
+                    "https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=800&q=80"
+                ]
+            },
+            {
+                "id": "house_2",
+                "title": "Spacious 3-Bedroom Apartment",
+                "property_type": "Apartment",
+                "vibe": "Urban City",
+                "transaction_type": "FOR SALE",
+                "furnishing": "Unfurnished",
+                "price": 14500000, 
+                "currency": "KES",
+                "location": "Kileleshwa, Nairobi",
+                "distance_to_tarmac": "Tarmac touch",
+                "security": ["CCTV", "24/7 Guards", "Intercom"],
+                "amenities": ["Borehole Water", "Backup Generator", "Elevator", "Large Balcony"],
+                "cover_image": "https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&q=80",
+                "gallery": [
+                    "https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=800&q=80",
+                    "https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&q=80",
+                    "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&q=80",
+                    "https://images.unsplash.com/photo-1480074568708-e7b720bb3f09?w=800&q=80"
+                ]
+            },
+            {
+                "id": "house_3",
+                "title": "Luxury Oceanfront Villa",
+                "property_type": "Mansion",
+                "vibe": "Beachfront",
+                "transaction_type": "FOR RENT",
+                "furnishing": "Fully Furnished",
+                "price": 250000, 
+                "currency": "KES",
+                "location": "Diani Beach, Kwale",
+                "distance_to_tarmac": "0.2km",
+                "security": ["Gated Community", "CCTV", "Electric Fencing", "Perimeter Wall"],
+                "amenities": ["Private Infinity Pool", "Private Beach Access", "Solar Heating", "Ocean View"],
+                "cover_image": "https://images.unsplash.com/photo-1499793983690-e29da59ef1c2?w=800&q=80",
+                "gallery": [
+                    "https://images.unsplash.com/photo-1590490360182-c33d59735288?w=800&q=80",
+                    "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=800&q=80",
+                    "https://images.unsplash.com/photo-1510798831971-661eb04b3739?w=800&q=80",
+                    "https://images.unsplash.com/photo-1507652313656-b7af0d91d09e?w=800&q=80"
+                ]
+            },
+            {
+                "id": "house_4",
+                "title": "Family Bungalow with Garden",
+                "property_type": "Bungalow",
+                "vibe": "Serene Suburb",
+                "transaction_type": "FOR SALE",
+                "furnishing": "Unfurnished",
+                "price": 22000000, 
+                "currency": "KES",
+                "location": "Karen, Nairobi",
+                "distance_to_tarmac": "1km",
+                "security": ["Dog Kennel", "Electric Fence", "Estate Guards"],
+                "amenities": ["Mountain View", "Fireplace", "Large Garden", "Solar Power", "Borehole Water"],
+                "cover_image": "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?w=800&q=80",
+                "gallery": [
+                    "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80",
+                    "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&q=80",
+                    "https://images.unsplash.com/photo-1449844908441-8829872d2607?w=800&q=80",
+                    "https://images.unsplash.com/photo-1560448204-603b3fc33ddc?w=800&q=80"
+                ]
+            },
+            {
+                "id": "house_5",
+                "title": "Skyline View Penthouse",
+                "property_type": "Penthouse",
+                "vibe": "Urban City",
+                "transaction_type": "FOR SALE",
+                "furnishing": "Fully Furnished",
+                "price": 45000000, 
+                "currency": "KES",
+                "location": "Westlands, Nairobi",
+                "distance_to_tarmac": "Tarmac touch",
+                "security": ["Biometric Access", "24/7 Guards"],
+                "amenities": ["High-Speed Fiber", "Private Elevator", "Wine Cellar", "Rooftop Terrace"],
+                "cover_image": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=80",
+                "gallery": [
+                    "https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=800&q=80",
+                    "https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&q=80",
+                    "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&q=80",
+                    "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=800&q=80"
+                ]
+            },
+            {
+                "id": "house_6",
+                "title": "Standard 2-Bedroom Unit",
+                "property_type": "Apartment",
+                "vibe": "Urban City",
+                "transaction_type": "FOR RENT",
+                "furnishing": "Unfurnished",
+                "price": 45000, 
+                "currency": "KES",
+                "location": "Ruaka, Kiambu",
+                "distance_to_tarmac": "0.1km",
+                "security": ["Diplomatic Zone", "Gated Security", "CCTV", "Panic Buttons", "Electric Fence"],
+                "amenities": ["Heated Pool", "Tennis Court", "DSQ", "Backup Generator", "Solar Water Heating"],
+                "cover_image": "https://images.unsplash.com/photo-1560185007-cde436f6a4d0?w=800&q=80",
+                "gallery": [
+                    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&q=80",
+                    "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=800&q=80",
+                    "https://images.unsplash.com/photo-1600573472591-ee6b68d14c68?w=800&q=80",
+                    "https://images.unsplash.com/photo-1600607687126-848248e583e2?w=800&q=80"
+                ]
+            },
+            {
+                "id": "house_7",
+                "title": "Rustic Woodland Cabin",
+                "property_type": "Self-Contained",
+                "vibe": "Nature",
+                "transaction_type": "FOR RENT",
+                "furnishing": "Fully Furnished",
+                "price": 80000, 
+                "currency": "KES",
+                "location": "Nanyuki, Laikipia",
+                "distance_to_tarmac": "2km",
+                "security": ["Perimeter Wall", "Electric Fence", "Night Guard"],
+                "amenities": ["Lake View", "Swimming Pool", "Greenhouse", "Outdoor Barbecue", "Borehole Water"],
+                "cover_image": "https://images.unsplash.com/photo-1510798831971-661eb04b3739?w=800&q=80",
+                "gallery": [
+                    "https://images.unsplash.com/photo-1560185127-6ed189bf02f4?w=800&q=80",
+                    "https://images.unsplash.com/photo-1556909211-36987daf11d1?w=800&q=80",
+                    "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&q=80",
+                    "https://images.unsplash.com/photo-1533779283484-8ad4941aa4a8?w=800&q=80"
+                ]
+            },
+            {
+                "id": "house_8",
+                "title": "Compact Investment Studio",
+                "property_type": "Studio",
+                "vibe": "Urban City",
+                "transaction_type": "FOR SALE",
+                "furnishing": "Unfurnished",
+                "price": 4500000, 
+                "currency": "KES",
+                "location": "South B, Nairobi",
+                "distance_to_tarmac": "0.1km",
+                "security": ["Manned Gate", "Electric Fence"],
+                "amenities": ["Gym", "High-Speed WiFi", "Laundry Area"],
+                "cover_image": "https://images.unsplash.com/photo-1536376072261-38c75010e6c9?w=800&q=80",
+                "gallery": [
+                    "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=800&q=80",
+                    "https://images.unsplash.com/photo-1554995207-c18c203602cb?w=800&q=80",
+                    "https://images.unsplash.com/photo-1505693314120-0d443867891c?w=800&q=80",
+                    "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=800&q=80"
+                ]
+            }
+        ]
+
+    @staticmethod
+    def get_housing_by_id(housing_id):
+        all_housing = MockHousingService.get_all_housing()
+        for h in all_housing:
+            if h["id"] == str(housing_id):
+                return h
+        return None
+
+    @staticmethod
+    def search_housing(transaction_type=None, property_type=None, vibe=None, furnishing=None, location=None):
+        filtered = MockHousingService.get_all_housing()
+        
+        if transaction_type and transaction_type.upper() != "ALL":
+            filtered = [h for h in filtered if h["transaction_type"].upper() == transaction_type.upper()]
+            
+        if property_type and property_type.lower() != "all":
+            filtered = [h for h in filtered if h["property_type"].lower() == property_type.lower()]
+            
+        if vibe and vibe.lower() != "all":
+            filtered = [h for h in filtered if h["vibe"].lower() == vibe.lower()]
+            
+        if furnishing and furnishing.lower() != "all":
+            filtered = [h for h in filtered if h["furnishing"].lower() == furnishing.lower()]
+            
+        if location and location.lower() != "all":
+            filtered = [h for h in filtered if location.lower() in h["location"].lower()]
+            
+        return filtered

@@ -5,12 +5,14 @@ import LandingPage from './pages/LandingPage';
 import AuthPage from './pages/AuthPage';
 import Dashboard from './pages/Dashboard';
 import TravelGuide from './pages/TravelGuide';
-import WalletPage from './pages/WalletPage';
+import WalletDashboard from './pages/WalletDashboard';
 import ServiceComingSoon from './pages/ServiceComingSoon';
 import RestaurantHome from './pages/listings/RestaurantHome';
 import RestaurantDetail from './pages/listings/RestaurantDetail';
 import HotelHome from './pages/listings/HotelHome';
 import HotelDetail from './pages/listings/HotelDetail';
+import HousingHome from './pages/listings/HousingHome';
+import HousingDetail from './pages/listings/HousingDetail';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import useIdleTimer from './hooks/useIdleTimer';
 
@@ -86,7 +88,7 @@ const AppContent = () => {
         path="/wallet"
         element={
           <ProtectedRoute>
-            <WalletPage />
+            <WalletDashboard />
           </ProtectedRoute>
         }
       />
@@ -94,8 +96,10 @@ const AppContent = () => {
       <Route path="/listings/restaurants/:id" element={<ProtectedRoute><RestaurantDetail /></ProtectedRoute>} />
       <Route path="/listings/hotels" element={<ProtectedRoute><HotelHome /></ProtectedRoute>} />
       <Route path="/listings/hotels/:id" element={<ProtectedRoute><HotelDetail /></ProtectedRoute>} />
+      <Route path="/listings/housing" element={<ProtectedRoute><HousingHome /></ProtectedRoute>} />
+      <Route path="/listings/housing/:id" element={<ProtectedRoute><HousingDetail /></ProtectedRoute>} />
       <Route path="/short-stays" element={<ProtectedRoute><ServiceComingSoon /></ProtectedRoute>} />
-      <Route path="/housing" element={<ProtectedRoute><ServiceComingSoon /></ProtectedRoute>} />
+      <Route path="/housing" element={<Navigate to="/listings/housing" replace />} />
       <Route path="/legal" element={<ProtectedRoute><ServiceComingSoon /></ProtectedRoute>} />
       <Route path="/car-hire" element={<ProtectedRoute><ServiceComingSoon /></ProtectedRoute>} />
       <Route path="/laundry" element={<ProtectedRoute><ServiceComingSoon /></ProtectedRoute>} />

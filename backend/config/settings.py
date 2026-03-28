@@ -57,12 +57,22 @@ WSGI_APPLICATION = "config.wsgi.application"
 
 # DATABASE
 DATABASES = {
-    "default": dj_database_url.parse(
-        os.getenv("DATABASE_URL", "postgres://zuru_admin:prollymanu@localhost:5432/zuru_db"),
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": os.getenv("POSTGRES_DB", "zuru_db"),
+        "USER": os.getenv("POSTGRES_USER", "zuru_admin"),
+        "PASSWORD": os.getenv("POSTGRES_PASSWORD", "prollymanu"),
+        "HOST": os.getenv("POSTGRES_HOST", "localhost"),
+        "PORT": os.getenv("POSTGRES_PORT", "5432"),
+        "CONN_MAX_AGE": 600,
+    }
+}
+if os.getenv("DATABASE_URL"):
+    DATABASES["default"] = dj_database_url.parse(
+        os.getenv("DATABASE_URL"),
         conn_max_age=600,
         ssl_require=False,
     )
-}
 
 # TEMPLATES
 TEMPLATES = [

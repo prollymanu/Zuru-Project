@@ -6,3 +6,4 @@ RUN apt-get update && apt-get install -y build-essential libpq-dev curl netcat-o
 COPY ./requirements.txt /code/
 RUN pip install --upgrade pip && pip install -r requirements.txt
 COPY . /code
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]

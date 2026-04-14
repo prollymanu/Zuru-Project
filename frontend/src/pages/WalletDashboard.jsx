@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import DashboardLayout from '../layouts/DashboardLayout';
 import api from '../api/axios';
+import Toast from '../components/common/Toast';
 
 // --- Subcomponents for PIN Input ---
 
@@ -165,30 +166,7 @@ const EnterPinModal = ({ onVerify, onSkip }) => {
 
 // --- Toast Notification ---
 
-const Toast = ({ message, type = 'success', onClose }) => {
-    useEffect(() => {
-        const timer = setTimeout(onClose, 3000);
-        return () => clearTimeout(timer);
-    }, [onClose]);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 50, x: '-50%' }}
-            animate={{ opacity: 1, y: 0, x: '-50%' }}
-            exit={{ opacity: 0, y: 20, x: '-50%' }}
-            className={`fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border ${type === 'success'
-                ? 'bg-emerald-950 border-emerald-500/50 text-emerald-400'
-                : 'bg-red-950 border-red-500/50 text-red-400'
-                }`}
-        >
-            {type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-            <span className="font-bold text-sm uppercase tracking-wider">{message}</span>
-            <button onClick={onClose} className="ml-2 opacity-50 hover:opacity-100">
-                <X size={16} />
-            </button>
-        </motion.div>
-    );
-};
+// --- Custom Toast Component has been extracted to a global component ---
 
 // --- Deposit Modal ---
 

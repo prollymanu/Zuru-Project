@@ -98,8 +98,13 @@ AUTHENTICATION_BACKENDS = [
 AUTH_USER_MODEL = "accounts.User"
 
 # EMAIL
-EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("SMTP_PORT", 587))
+EMAIL_USE_TLS = os.getenv("SMTP_USE_TLS", "True") == "True"
+EMAIL_HOST_USER = os.getenv("SMTP_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 # INTERNATIONALIZATION
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Africa/Nairobi"

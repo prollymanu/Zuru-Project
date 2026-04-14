@@ -65,7 +65,13 @@ class RegisterView(generics.GenericAPIView):
                 )
                 
                 logger.info(f"OTP FOR {email}: {otp_code}")
-                send_verification_email(email, otp_code)
+                try:
+                    send_verification_email(email, otp_code)
+                except Exception as e:
+                    logger.error(f"Mail delivery failed: {str(e)}")
+                    # If this fails, roll back the transaction by raising an exception, or return 500 explicitly.
+                    # Since we are inside an atomic block, raising an exception rolls it back.
+                    raise Exception("Mail delivery failed.")
                 
             return Response({
                 "message": "Verification code sent. Please check your email.",
@@ -74,6 +80,8 @@ class RegisterView(generics.GenericAPIView):
             
         except Exception as e:
             logger.error(f"SYSTEM ERROR: {str(e)}")
+            if "Mail delivery failed" in str(e):
+                return Response({'detail': 'Mail delivery failed. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class VerifyOTPView(views.APIView):
@@ -152,12 +160,18 @@ class ResendOTPView(views.APIView):
                 pending_user.expires_at = expires_at
                 pending_user.save()
 
-                send_verification_email(email, otp_code)
+                try:
+                    send_verification_email(email, otp_code)
+                except Exception as e:
+                    logger.error(f"Mail delivery failed: {str(e)}")
+                    raise Exception("Mail delivery failed.")
             
             return Response({"detail": "New code sent."}, status=status.HTTP_200_OK)
             
         except Exception as e:
              logger.error(f"SYSTEM ERROR (ResendOTP): {str(e)}")
+             if "Mail delivery failed" in str(e):
+                 return Response({'detail': 'Mail delivery failed. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
              return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class LoginView(views.APIView):

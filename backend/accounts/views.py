@@ -37,6 +37,8 @@ class RegisterView(generics.GenericAPIView):
             if User.objects.filter(email=email).exists():
                 return Response({'email': ['User with this email already exists.']}, status=status.HTTP_400_BAD_REQUEST)
 
+            # --- Phase 1: Save to DB atomically (always succeeds or fails cleanly) ---
+            otp_code = None
             with transaction.atomic():
                 password = serializer.validated_data['password']
                 encrypted_password = make_password(password)
@@ -65,41 +67,41 @@ class RegisterView(generics.GenericAPIView):
                         'expires_at': expires_at
                     }
                 )
-                
                 logger.info(f"OTP FOR {email}: {otp_code}")
-                try:
-                    send_verification_email(email, otp_code)
-                except smtplib.SMTPException as e:
-                    logger.error(f"[SMTP_ERROR] SMTP handshake failed for {email}: {str(e)}")
-                    raise smtplib.SMTPException("Mail delivery failed.")
-                except socket.error as e:
-                    if getattr(e, 'errno', None) == 101:
-                        logger.error(f"[NETWORK_UNREACHABLE] Errno 101: IPv6/DNS routing failed for {email}: {str(e)}")
-                    else:
-                        logger.error(f"[SOCKET_ERROR] Network error for {email}: {str(e)}")
-                    raise socket.error("Mail delivery failed.")
-                except Exception as e:
-                    logger.error(f"[MAIL_ERROR] Unexpected failure for {email}: {str(e)}")
-                    raise Exception("Mail delivery failed.")
-                
-            return Response({
-                "message": "Verification code sent. Please check your email.",
-                "email": email
-            }, status=status.HTTP_200_OK)
+
+            # --- Phase 2: Send email OUTSIDE the transaction ---
+            # If this fails, the PendingRegistration row is preserved so the
+            # user can request a resend without losing their registration data.
+            email_sent = False
+            try:
+                send_verification_email(email, otp_code)
+                email_sent = True
+            except smtplib.SMTPException as e:
+                logger.error(f"[SMTP_ERROR] SMTP handshake failed for {email}: {str(e)}")
+            except socket.error as e:
+                if getattr(e, 'errno', None) == 101:
+                    logger.error(f"[NETWORK_UNREACHABLE] Errno 101: IPv6/DNS routing failed for {email}: {str(e)}")
+                else:
+                    logger.error(f"[SOCKET_ERROR] Network error for {email}: {str(e)}")
+            except Exception as e:
+                logger.error(f"[MAIL_ERROR] Unexpected mail failure for {email}: {str(e)}")
+
+            if email_sent:
+                return Response({
+                    "message": "Verification code sent. Please check your email.",
+                    "email": email,
+                    "email_sent": True,
+                }, status=status.HTTP_200_OK)
+            else:
+                # User is saved — return 200 so the frontend can show a "Resend Code" button
+                return Response({
+                    "message": "Account queued. Mail delivery failed — please use Resend Code.",
+                    "email": email,
+                    "email_sent": False,
+                }, status=status.HTTP_200_OK)
             
-        except (smtplib.SMTPException, socket.error) as e:
-            logger.error(f"[MAIL_SERVER_ERROR] Registration mail failure: {str(e)}")
-            return Response({
-                'error': 'mail_server_unavailable',
-                'detail': 'Temporary Mail Server Issue. Your account has been queued — please try again in a few minutes.',
-            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except Exception as e:
             logger.error(f"SYSTEM ERROR: {str(e)}")
-            if "Mail delivery failed" in str(e):
-                return Response({
-                    'error': 'mail_delivery_failed',
-                    'detail': 'Temporary Mail Server Issue. Your account has been queued — please try again in a few minutes.',
-                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class VerifyOTPView(views.APIView):

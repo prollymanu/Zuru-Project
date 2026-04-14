@@ -7,23 +7,15 @@ from django.db import transaction
 from django.contrib.auth.hashers import make_password, check_password
 from .models import Wallet
 from .services import hash_pin, verify_pin, calculate_fee
+from .serializers import WalletStatusSerializer
 
 class WalletStatusView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        try:
-            wallet = request.user.wallet
-            has_wallet = True
-            pin_setup = bool(wallet.pin_hash)
-        except Wallet.DoesNotExist:
-            has_wallet = False
-            pin_setup = False
-
-        return Response({
-            'has_wallet': has_wallet,
-            'pin_setup': pin_setup
-        }, status=status.HTTP_200_OK)
+        wallet, created = Wallet.objects.get_or_create(user=request.user)
+        serializer = WalletStatusSerializer(wallet)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class WalletBalancesView(APIView):
     permission_classes = [IsAuthenticated]

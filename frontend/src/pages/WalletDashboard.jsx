@@ -683,8 +683,7 @@ const WalletDashboard = () => {
     const navigate = useNavigate();
 
     // State
-    const [isLoading, setIsLoading] = useState(true);
-    const [hasPin, setHasPin] = useState(null);
+    const [walletStatus, setWalletStatus] = useState({ loading: true, hasPin: false });
     const [isUnlocked, setIsUnlocked] = useState(false);
 
     const [showSetupModal, setShowSetupModal] = useState(false);
@@ -707,25 +706,19 @@ const WalletDashboard = () => {
     useEffect(() => {
         const fetchWalletStatus = async () => {
             try {
-                // Try fetching status. If API doesn't exist, we mock it.
-                // await api.get('/api/wallet/status/');
-                // Mocking: Assume mostly everyone hasn't set up yet for demo, or randomness.
-                // For demonstration, let's say they have a PIN set up after first try.
-                const storedPinFlag = localStorage.getItem('wallet_has_pin');
-
-                setTimeout(() => {
-                    if (storedPinFlag === 'true') {
-                        setHasPin(true);
-                        setShowEnterPinModal(true);
-                    } else {
-                        setHasPin(false);
-                        setShowSetupModal(true);
-                    }
-                    setIsLoading(false);
-                }, 800);
+                const response = await api.get('/api/wallet/status/');
+                const userHasPin = response.data?.has_pin === true;
+                
+                setWalletStatus({ loading: false, hasPin: userHasPin });
+                
+                if (userHasPin) {
+                    setShowEnterPinModal(true);
+                } else {
+                    setShowSetupModal(true);
+                }
             } catch (error) {
                 console.error("Error fetching wallet status:", error);
-                setIsLoading(false);
+                setWalletStatus(prev => ({ ...prev, loading: false }));
             }
         };
 
@@ -752,8 +745,7 @@ const WalletDashboard = () => {
     };
 
     const handleSetupComplete = (pin) => {
-        localStorage.setItem('wallet_has_pin', 'true');
-        setHasPin(true);
+        setWalletStatus({ loading: false, hasPin: true });
         setShowSetupModal(false);
         setIsUnlocked(true);
         fetchWalletData();
@@ -788,7 +780,7 @@ const WalletDashboard = () => {
 
     const maskBalance = (amount) => isUnlocked ? amount : '****';
 
-    if (isLoading) {
+    if (walletStatus.loading) {
         return (
             <DashboardLayout>
                 <div className="flex items-center justify-center h-[60vh]">
@@ -816,7 +808,7 @@ const WalletDashboard = () => {
                         </p>
                     </div>
                     <div className="flex items-center gap-4">
-                        {!isUnlocked && hasPin && !showEnterPinModal && (
+                        {!isUnlocked && walletStatus.hasPin && !showEnterPinModal && (
                             <button
                                 onClick={() => setShowEnterPinModal(true)}
                                 className="flex items-center gap-2 bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl text-white text-sm font-bold transition-colors"

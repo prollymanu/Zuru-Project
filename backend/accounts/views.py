@@ -9,6 +9,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 import random
 import logging
+import smtplib
+import socket
 
 from .serializers import RegistrationSerializer, UserSerializer, UserChecklistSerializer
 from .models import OTPVerification, PendingRegistration, UserChecklist
@@ -67,10 +69,17 @@ class RegisterView(generics.GenericAPIView):
                 logger.info(f"OTP FOR {email}: {otp_code}")
                 try:
                     send_verification_email(email, otp_code)
+                except smtplib.SMTPException as e:
+                    logger.error(f"[SMTP_ERROR] SMTP handshake failed for {email}: {str(e)}")
+                    raise smtplib.SMTPException("Mail delivery failed.")
+                except socket.error as e:
+                    if getattr(e, 'errno', None) == 101:
+                        logger.error(f"[NETWORK_UNREACHABLE] Errno 101: IPv6/DNS routing failed for {email}: {str(e)}")
+                    else:
+                        logger.error(f"[SOCKET_ERROR] Network error for {email}: {str(e)}")
+                    raise socket.error("Mail delivery failed.")
                 except Exception as e:
-                    logger.error(f"Mail delivery failed: {str(e)}")
-                    # If this fails, roll back the transaction by raising an exception, or return 500 explicitly.
-                    # Since we are inside an atomic block, raising an exception rolls it back.
+                    logger.error(f"[MAIL_ERROR] Unexpected failure for {email}: {str(e)}")
                     raise Exception("Mail delivery failed.")
                 
             return Response({
@@ -78,10 +87,19 @@ class RegisterView(generics.GenericAPIView):
                 "email": email
             }, status=status.HTTP_200_OK)
             
+        except (smtplib.SMTPException, socket.error) as e:
+            logger.error(f"[MAIL_SERVER_ERROR] Registration mail failure: {str(e)}")
+            return Response({
+                'error': 'mail_server_unavailable',
+                'detail': 'Temporary Mail Server Issue. Your account has been queued — please try again in a few minutes.',
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
         except Exception as e:
             logger.error(f"SYSTEM ERROR: {str(e)}")
             if "Mail delivery failed" in str(e):
-                return Response({'detail': 'Mail delivery failed. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response({
+                    'error': 'mail_delivery_failed',
+                    'detail': 'Temporary Mail Server Issue. Your account has been queued — please try again in a few minutes.',
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class VerifyOTPView(views.APIView):

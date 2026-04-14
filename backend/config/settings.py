@@ -105,11 +105,12 @@ if EMAIL_HOST:
     EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
     # Strict boolean conversion for Render environment strings
     EMAIL_USE_TLS = str(os.environ.get('EMAIL_USE_TLS', 'True')).lower() == 'true'
+    EMAIL_USE_SSL = False  # Ensure no conflict with TLS on port 587
     EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
     DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL')
     # Prevent the server from hanging indefinitely
-    EMAIL_TIMEOUT = 15 
+    EMAIL_TIMEOUT = 15
 else:
     # Fallback for local development
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

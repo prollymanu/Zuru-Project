@@ -131,6 +131,7 @@ const AuthPage = () => {
     const [otpMessage, setOtpMessage] = useState("");
     const [resendTimer, setResendTimer] = useState(0);
     const [isVerifying, setIsVerifying] = useState(false);
+    const [mailError, setMailError] = useState(null); // { email } when 503 mail failure
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -187,6 +188,7 @@ const AuthPage = () => {
         setIsActionLoading(true);
         setGlobalError("");
         setErrors({});
+        setMailError(null);
 
         const endpoint = isLogin ? '/api/auth/login/' : '/api/auth/register/';
         const payload = isLogin
@@ -216,13 +218,15 @@ const AuthPage = () => {
         } catch (err) {
             console.error(err);
             if (err.response && err.response.status === 400) {
-                // Field-specific errors from backend
                 setErrors(err.response.data);
             } else if (err.response?.status === 401) {
                 setGlobalError("Incorrect Password or Email.");
             } else if (err.response && err.response.status === 403 && isLogin) {
                 setGlobalError("Please verify your email first.");
                 setShowOTP(true);
+            } else if (err.response?.status === 503 && err.response?.data?.error === 'mail_delivery_failed') {
+                // Account was created but mail server failed — do NOT go to OTP screen
+                setMailError({ email: err.response.data.email || email });
             } else {
                 setErrors({ global: "Connection error. Please try again." });
             }
@@ -376,6 +380,36 @@ const AuthPage = () => {
                                 >
                                     <X className="w-5 h-5 flex-shrink-0" />
                                     {globalError || errors.global}
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Mail Failure Banner */}
+                        <AnimatePresence>
+                            {mailError && (
+                                <motion.div
+                                    initial={{ height: 0, opacity: 0 }}
+                                    animate={{ height: "auto", opacity: 1 }}
+                                    exit={{ height: 0, opacity: 0 }}
+                                    className="bg-amber-500/10 border border-amber-500/40 rounded-2xl p-4 mb-6 space-y-3"
+                                >
+                                    <div className="flex gap-3 items-start">
+                                        <Mail className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                                        <div>
+                                            <p className="text-amber-300 text-sm font-semibold">Account created, but email delivery failed.</p>
+                                            <p className="text-amber-400/70 text-xs mt-1">Check your inbox in a few minutes, or click below to resend your verification code.</p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            setShowOTP(true);
+                                            setResendTimer(0);
+                                            handleResendCode();
+                                        }}
+                                        className="w-full h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-bold uppercase tracking-widest hover:bg-amber-500/30 transition-all"
+                                    >
+                                        Resend Verification Code
+                                    </button>
                                 </motion.div>
                             )}
                         </AnimatePresence>

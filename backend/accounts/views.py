@@ -93,12 +93,14 @@ class RegisterView(generics.GenericAPIView):
                     "email_sent": True,
                 }, status=status.HTTP_200_OK)
             else:
-                # User is saved — return 200 so the frontend can show a "Resend Code" button
+                # PendingRegistration is saved — user can resend from the login/signup page.
+                # Return 503 so the frontend does NOT redirect to the OTP screen.
                 return Response({
-                    "message": "Account queued. Mail delivery failed — please use Resend Code.",
+                    "error": "mail_delivery_failed",
                     "email": email,
                     "email_sent": False,
-                }, status=status.HTTP_200_OK)
+                    "detail": "Registration successful, but we couldn't send your verification email. Please try resending from the login page.",
+                }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             
         except Exception as e:
             logger.error(f"SYSTEM ERROR: {str(e)}")

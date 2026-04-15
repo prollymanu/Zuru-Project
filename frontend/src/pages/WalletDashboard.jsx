@@ -9,6 +9,7 @@ import {
 import DashboardLayout from '../layouts/DashboardLayout';
 import api from '../api/axios';
 import Toast from '../components/common/Toast';
+import WithdrawModal from '../components/wallet/WithdrawModal';
 
 // --- Subcomponents for PIN Input ---
 
@@ -669,6 +670,7 @@ const WalletDashboard = () => {
     const [showDepositModal, setShowDepositModal] = useState(false);
     const [showConvertModal, setShowConvertModal] = useState(false);
     const [showMpesaModal, setShowMpesaModal] = useState(false);
+    const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
     const [toast, setToast] = useState(null);
 
@@ -862,7 +864,7 @@ const WalletDashboard = () => {
                             icon: <ArrowUp size={24} />,
                             label: "Withdraw",
                             bg: "bg-red-500/10 text-red-500",
-                            onClick: () => { }
+                            onClick: () => isUnlocked ? setShowWithdrawModal(true) : setShowEnterPinModal(true)
                         },
                         {
                             icon: <RefreshCw size={24} />,
@@ -999,6 +1001,15 @@ const WalletDashboard = () => {
                         onBalanceUpdate={handleBalanceUpdate}
                         kesBalance={kesBalance}
                         onPrependTransaction={handlePrependTransaction}
+                    />
+                )}
+                {showWithdrawModal && (
+                    <WithdrawModal
+                        isOpen={showWithdrawModal}
+                        onClose={() => setShowWithdrawModal(false)}
+                        foreignBalance={foreignBalance}
+                        refreshData={fetchWalletData}
+                        onBalanceUpdate={handleBalanceUpdate}
                     />
                 )}
                 {toast && (

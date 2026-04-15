@@ -4,10 +4,11 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
+from django.db.models import F
 from django.contrib.auth.hashers import make_password, check_password
 from .models import Wallet
 from .services import hash_pin, verify_pin, calculate_fee
-from .serializers import WalletStatusSerializer
+from .serializers import WalletStatusSerializer, WithdrawalSerializer
 
 class WalletStatusView(APIView):
     permission_classes = [IsAuthenticated]
@@ -339,3 +340,96 @@ class WalletDepositView(APIView):
             'kes_balance': str(wallet.kes_balance),
             'transactions': tx_data
         }, status=status.HTTP_200_OK)
+
+class WalletWithdrawalView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        try:
+            # --- Serializer Validation (amount + withdrawal_method) ---
+            serializer = WithdrawalSerializer(data=request.data)
+            if not serializer.is_valid():
+                # Flatten DRF error dict into a single human-readable message
+                first_field, messages = next(iter(serializer.errors.items()))
+                first_message = messages[0] if messages else 'Invalid input.'
+                return Response(
+                    {'error': first_message, 'code': 'VALIDATION_ERROR', 'field': first_field},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            amount = serializer.validated_data['amount']
+            withdrawal_method = serializer.validated_data['withdrawal_method']
+
+            with transaction.atomic():
+                # --- Row-Level Exclusivity Lock ---
+                try:
+                    wallet = Wallet.objects.select_for_update().get(user=request.user)
+                except Wallet.DoesNotExist:
+                    return Response(
+                        {'error': 'Wallet not found.', 'code': 'WALLET_NOT_FOUND'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+
+                # --- Financial Safety: Enforce FOREIGN (USD) account only ---
+                # All withdrawals are deducted from foreign_balance (USD).
+                # This guard makes the intent explicit and prevents future logic drift.
+                account_type = 'FOREIGN'
+                if account_type != 'FOREIGN':
+                    return Response(
+                        {'error': 'Withdrawals are only permitted from the USD (Foreign) wallet.', 'code': 'WRONG_ACCOUNT'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                # --- Sufficient Funds Check ---
+                if wallet.foreign_balance < amount:
+                    return Response(
+                        {
+                            'error': f'Insufficient USD balance. Available: ${wallet.foreign_balance:.2f}, Requested: ${amount:.2f}.',
+                            'code': 'INSUFFICIENT_FUNDS',
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
+                # --- Atomic Deduction via F() to prevent race conditions ---
+                wallet.foreign_balance = F('foreign_balance') - amount
+                wallet.save(update_fields=['foreign_balance', 'updated_at'])
+
+                # Refresh to get the DB-evaluated balance value back into Python
+                wallet.refresh_from_db(fields=['foreign_balance'])
+
+                # --- Immutable Ledger Entry ---
+                from .models import ImmutableTransaction
+                from .services import generate_reference_code
+
+                tx = ImmutableTransaction.objects.create(
+                    wallet=wallet,
+                    transaction_type='WITHDRAWAL',
+                    amount=amount,
+                    currency='USD',
+                    withdrawal_method=withdrawal_method,
+                    status='COMPLETED',
+                    reference_code=generate_reference_code('WITHDRAWAL')
+                )
+
+            # --- Success Response ---
+            return Response({
+                'message': 'Withdrawal completed successfully.',
+                'foreign_balance': str(wallet.foreign_balance),
+                'reference_code': tx.reference_code,
+                'timestamp': tx.timestamp.isoformat(),
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            import traceback
+            from django.conf import settings as django_settings
+            traceback.print_exc()  # Surfaces full stack trace in Docker / server logs
+            return Response(
+                {
+                    'error': 'A processing error occurred. Our team has been notified.',
+                    'code': 'INTERNAL_SERVER_ERROR',
+                    # Only expose raw exception detail in DEBUG mode — never in production
+                    'detail': str(e) if django_settings.DEBUG else None,
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+

@@ -14,6 +14,8 @@ import HotelDetail from './pages/listings/HotelDetail';
 import HousingHome from './pages/listings/HousingHome';
 import HousingDetail from './pages/listings/HousingDetail';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
+import { useToast } from './context/ToastContext';
 import useIdleTimer from './hooks/useIdleTimer';
 
 // Protected Route Wrapper
@@ -52,12 +54,13 @@ const LoadingScreen = () => (
 
 const AppContent = () => {
   const { logout, isAuthenticated, isLoading } = useAuth();
+  const { showToast } = useToast();
 
   // 15 minutes idle timer
   useIdleTimer(15, () => {
     if (isAuthenticated) {
       logout();
-      alert("Session expired due to inactivity.");
+      showToast('Session expired due to inactivity. Please log in again.', 'error');
     }
   });
 
@@ -121,9 +124,11 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <ToastProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }

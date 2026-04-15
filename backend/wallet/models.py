@@ -20,11 +20,17 @@ class ImmutableTransaction(models.Model):
         ('TILL', 'M-Pesa Till'),
         ('PAYBILL', 'M-Pesa Paybill'),
         ('SEND_MONEY', 'M-Pesa Send Money'),
+        ('WITHDRAWAL', 'Withdrawal'),
     )
     STATUS_CHOICES = (
         ('PENDING', 'Pending'),
         ('COMPLETED', 'Completed'),
         ('FAILED', 'Failed'),
+    )
+    WITHDRAWAL_METHODS = (
+        ('CARD', 'Card'),
+        ('APPLE_PAY', 'Apple Pay'),
+        ('PAYPAL', 'PayPal'),
     )
     
     wallet = models.ForeignKey(Wallet, on_delete=models.CASCADE, related_name='transactions')
@@ -34,6 +40,7 @@ class ImmutableTransaction(models.Model):
     fee_applied = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     reference_code = models.CharField(max_length=100, unique=True)
+    withdrawal_method = models.CharField(max_length=20, choices=WITHDRAWAL_METHODS, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def delete(self, *args, **kwargs):

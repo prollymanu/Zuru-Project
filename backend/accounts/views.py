@@ -72,19 +72,7 @@ class RegisterView(generics.GenericAPIView):
             # --- Phase 2: Send email OUTSIDE the transaction ---
             # If this fails, the PendingRegistration row is preserved so the
             # user can request a resend without losing their registration data.
-            email_sent = False
-            try:
-                send_verification_email(email, otp_code)
-                email_sent = True
-            except smtplib.SMTPException as e:
-                logger.error(f"[SMTP_ERROR] SMTP handshake failed for {email}: {str(e)}")
-            except socket.error as e:
-                if getattr(e, 'errno', None) == 101:
-                    logger.error(f"[NETWORK_UNREACHABLE] Errno 101: IPv6/DNS routing failed for {email}: {str(e)}")
-                else:
-                    logger.error(f"[SOCKET_ERROR] Network error for {email}: {str(e)}")
-            except Exception as e:
-                logger.error(f"[MAIL_ERROR] Unexpected mail failure for {email}: {str(e)}")
+            email_sent = send_verification_email(email, otp_code)
 
             if email_sent:
                 return Response({
@@ -182,10 +170,8 @@ class ResendOTPView(views.APIView):
                 pending_user.expires_at = expires_at
                 pending_user.save()
 
-                try:
-                    send_verification_email(email, otp_code)
-                except Exception as e:
-                    logger.error(f"Mail delivery failed: {str(e)}")
+                email_sent = send_verification_email(email, otp_code)
+                if not email_sent:
                     raise Exception("Mail delivery failed.")
             
             return Response({"detail": "New code sent."}, status=status.HTTP_200_OK)

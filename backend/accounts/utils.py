@@ -54,16 +54,13 @@ def send_verification_email(email: str, otp: str) -> bool:
     try:
         api = _get_brevo_api()
         response = api.send_transac_email(send_smtp_email)
-        logger.info(f"[BREVO_OK] OTP email sent to {email} | messageId={getattr(response, 'message_id', 'N/A')}")
+        logger.info("[BREVO] Email sent successfully")
         return True
 
     except ApiException as e:
-        logger.error(
-            f"[BREVO_API_ERROR] Brevo API call failed for {email} | "
-            f"status={e.status} reason={e.reason} body={e.body}"
-        )
+        logger.error("[BREVO_API_ERROR] Brevo API call failed during email dispatch.")
         return False
 
     except Exception as e:
-        logger.error(f"[BREVO_UNEXPECTED] Unexpected error sending OTP to {email}: {str(e)}")
+        logger.error("[BREVO_UNEXPECTED] Unexpected error during email dispatch.")
         return False

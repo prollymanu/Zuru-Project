@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     User, Mail, Lock, Eye, EyeOff,
     MapPin, Plane, Globe, Calendar, Check, X,
-    Loader2, ArrowLeft, Timer
+    Loader2, ArrowLeft, Timer, MailWarning
 } from 'lucide-react';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
@@ -132,6 +132,8 @@ const AuthPage = () => {
     const [resendTimer, setResendTimer] = useState(0);
     const [isVerifying, setIsVerifying] = useState(false);
     const [mailError, setMailError] = useState(null); // { email } when 503 mail failure
+    const [showSpamHint, setShowSpamHint] = useState(false);
+    const [spamTimerStart, setSpamTimerStart] = useState(Date.now());
 
     const today = new Date().toISOString().split('T')[0];
 
@@ -152,6 +154,18 @@ const AuthPage = () => {
         }
         return () => clearInterval(interval);
     }, [resendTimer]);
+
+    useEffect(() => {
+        let spamTimer;
+        if (showOTP && !isVerifying) {
+            spamTimer = setTimeout(() => {
+                setShowSpamHint(true);
+            }, 120000); // 120 seconds
+        } else {
+            setShowSpamHint(false);
+        }
+        return () => clearTimeout(spamTimer);
+    }, [showOTP, isVerifying, spamTimerStart]);
 
     if (authLoading) return null;
 
@@ -214,6 +228,7 @@ const AuthPage = () => {
                 // For signup, we transition to OTP
                 setShowOTP(true);
                 setResendTimer(60);
+                setSpamTimerStart(Date.now());
             }
         } catch (err) {
             console.error(err);
@@ -224,6 +239,7 @@ const AuthPage = () => {
             } else if (err.response && err.response.status === 403 && isLogin) {
                 setGlobalError("Please verify your email first.");
                 setShowOTP(true);
+                setSpamTimerStart(Date.now());
             } else if (err.response?.status === 503 && err.response?.data?.error === 'mail_delivery_failed') {
                 // Account was created but mail server failed — do NOT go to OTP screen
                 setMailError({ email: err.response.data.email || email });
@@ -265,6 +281,8 @@ const AuthPage = () => {
     const handleResendCode = async () => {
         if (resendTimer > 0) return;
         setResendTimer(60);
+        setSpamTimerStart(Date.now());
+        setShowSpamHint(false);
         try {
             await api.post('/api/auth/resend-otp/', { email });
         } catch {
@@ -415,7 +433,26 @@ const AuthPage = () => {
                         </AnimatePresence>
 
                         {showOTP ? (
-                            <div className="space-y-8">
+                            <div className="space-y-6">
+                                <AnimatePresence>
+                                    {showSpamHint && (
+                                        <motion.div
+                                            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                                            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                                            className="bg-orange-50 border border-orange-200 rounded-2xl p-4 flex gap-3 text-orange-900 text-sm font-medium shadow-sm"
+                                        >
+                                            <MailWarning className="w-5 h-5 flex-shrink-0 text-orange-500 mt-0.5" />
+                                            <p className="leading-relaxed flex-1">
+                                                Still haven't received your code? Please check your Spam or Junk folder. Sometimes verification emails take a detour!
+                                            </p>
+                                            <button type="button" onClick={() => setShowSpamHint(false)} className="text-orange-400 hover:text-orange-600 transition-colors flex-shrink-0">
+                                                <X size={16} />
+                                            </button>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+
                                 <div className="p-8 border border-white/5 rounded-3xl bg-neutral-900/50 text-center">
                                     <OTPInput
                                         length={6}

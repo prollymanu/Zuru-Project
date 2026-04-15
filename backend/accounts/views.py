@@ -27,7 +27,6 @@ class RegisterView(generics.GenericAPIView):
     serializer_class = RegistrationSerializer
     
     def post(self, request, *args, **kwargs):
-        print(f"DEBUG REGISTER DATA: {request.data}")
         try:
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
@@ -67,7 +66,6 @@ class RegisterView(generics.GenericAPIView):
                         'expires_at': expires_at
                     }
                 )
-                logger.info(f"OTP FOR {email}: {otp_code}")
 
             # --- Phase 2: Send email OUTSIDE the transaction ---
             # If this fails, the PendingRegistration row is preserved so the
@@ -91,12 +89,11 @@ class RegisterView(generics.GenericAPIView):
                 }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
             
         except Exception as e:
-            logger.error(f"SYSTEM ERROR: {str(e)}")
+            logger.error("SYSTEM ERROR during registration.")
             return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class VerifyOTPView(views.APIView):
     def post(self, request):
-        print(f"DEBUG VERIFY OTP DATA: {request.data}")
         try:
             email = request.data.get('email')
             otp_code = request.data.get('otp')
@@ -144,7 +141,7 @@ class VerifyOTPView(views.APIView):
             }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
-            logger.error(f"SYSTEM ERROR (VerifyOTP): {str(e)}")
+            logger.error("SYSTEM ERROR (VerifyOTP): Error occurred during OTP verification.")
             return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class ResendOTPView(views.APIView):
@@ -177,7 +174,7 @@ class ResendOTPView(views.APIView):
             return Response({"detail": "New code sent."}, status=status.HTTP_200_OK)
             
         except Exception as e:
-             logger.error(f"SYSTEM ERROR (ResendOTP): {str(e)}")
+             logger.error("SYSTEM ERROR (ResendOTP): Error occurred during OTP resend.")
              if "Mail delivery failed" in str(e):
                  return Response({'detail': 'Mail delivery failed. Please try again later.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
              return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -215,7 +212,7 @@ class LoginView(views.APIView):
             }, status=status.HTTP_200_OK)
             
         except Exception as e:
-             logger.error(f"SYSTEM ERROR (Login): {str(e)}")
+             logger.error("SYSTEM ERROR (Login): Error occurred during login.")
              return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -244,7 +241,7 @@ class LogoutView(views.APIView):
         except TokenError:
             return Response({"error": "Invalid or expired refresh token."}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
-            logger.error(f"SYSTEM ERROR (Logout): {str(e)}")
+            logger.error("SYSTEM ERROR (Logout): Error occurred during logout.")
             return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class UpdateArrivalStatusView(views.APIView):
@@ -252,7 +249,6 @@ class UpdateArrivalStatusView(views.APIView):
 
     def patch(self, request):
         """Updates is_in_kenya status and returns latest user profile data."""
-        print(f"DEBUG STATUS UPDATE USER: {request.user}, DATA: {request.data}")
         try:
             user = request.user
             is_in_kenya = request.data.get("is_in_kenya")
@@ -272,7 +268,7 @@ class UpdateArrivalStatusView(views.APIView):
                 "user": UserSerializer(user).data
             }, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"SYSTEM ERROR (UpdateArrivalStatus): {str(e)}")
+            logger.error("SYSTEM ERROR (UpdateArrivalStatus): Error occurred during status update.")
             return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class TravelChecklistView(views.APIView):
@@ -309,5 +305,5 @@ class TravelChecklistView(views.APIView):
                 "is_complete": checklist.is_complete
             }, status=status.HTTP_200_OK)
         except Exception as e:
-            logger.error(f"SYSTEM ERROR (TravelChecklist): {str(e)}")
+            logger.error("SYSTEM ERROR (TravelChecklist): Error occurred during checklist update.")
             return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

@@ -307,3 +307,46 @@ class TravelChecklistView(views.APIView):
         except Exception as e:
             logger.error("SYSTEM ERROR (TravelChecklist): Error occurred during checklist update.")
             return Response({'detail': 'System error.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class DatabaseHealthCheckView(views.APIView):
+    """
+    Hidden diagnostic endpoint — verifies the Django backend can still query
+    Supabase with full service_role permissions after RLS has been enabled.
+
+    Access: GET /api/auth/db-health/?key=zuru_secret_123
+    Only the matching key param grants a response. All other requests get 403.
+
+    NOTE: Remove or move this behind staff-only auth before a public launch.
+    """
+    permission_classes = []  # No JWT needed — key param is the gate
+    authentication_classes = []
+
+    _SECRET_KEY = "zuru_secret_123"
+
+    def get(self, request):
+        if request.query_params.get("key") != self._SECRET_KEY:
+            return Response({"detail": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            user_count = User.objects.count()
+            from wallet.models import Wallet
+            wallet_count = Wallet.objects.count()
+            from .models import PendingRegistration
+            pending_count = PendingRegistration.objects.count()
+
+            return Response({
+                "status": "secure_connection_verified",
+                "user_count": user_count,
+                "wallet_count": wallet_count,
+                "pending_registrations": pending_count,
+                "rls_bypass": "confirmed",
+            }, status=status.HTTP_200_OK)
+
+        except Exception:
+            logger.error("DB health check query failed.")
+            return Response({
+                "status": "db_connection_failed",
+                "detail": "Backend cannot read DB. Check DATABASE_URL and RLS policies.",
+            }, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+

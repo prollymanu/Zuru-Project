@@ -28,7 +28,7 @@ class OTPVerification(models.Model):
     expires_at = models.DateTimeField()
 
     def __str__(self):
-        return f"{self.user.email} - {self.otp_code}"
+        return f"{self.user.email} - [OTP REDACTED]"
 
 class UserChecklist(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='checklist')

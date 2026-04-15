@@ -27,7 +27,6 @@ class RegistrationSerializer(serializers.Serializer):
         Date Validation: 
         If is_in_kenya is False, and the date is in the past, raise ValidationError.
         """
-        print(f"DEBUG SERIALIZER DATA: {self.initial_data}")
         # is_in_kenya check
         is_in_kenya = self.initial_data.get('is_in_kenya', False)
         

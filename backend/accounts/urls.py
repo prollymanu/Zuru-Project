@@ -7,7 +7,8 @@ from .views import (
     LogoutView,
     UserProfileView,
     UpdateArrivalStatusView, 
-    TravelChecklistView
+    TravelChecklistView,
+    DatabaseHealthCheckView,
 )
 
 urlpatterns = [
@@ -21,4 +22,7 @@ urlpatterns = [
     # Business Logic Paths
     path('update-arrival-status/', UpdateArrivalStatusView.as_view(), name='update-status'),
     path('checklist/', TravelChecklistView.as_view(), name='checklist'),
+
+    # Hidden diagnostic — remove before public launch
+    path('db-health/', DatabaseHealthCheckView.as_view(), name='db-health'),
 ]

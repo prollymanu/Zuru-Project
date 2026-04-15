@@ -71,7 +71,7 @@ if os.getenv("DATABASE_URL"):
     DATABASES["default"] = dj_database_url.parse(
         os.getenv("DATABASE_URL"),
         conn_max_age=600,
-        ssl_require=False,
+        ssl_require=True,  # Enforces TLS for all Supabase Pooler connections (port 6543)
     )
 
 # TEMPLATES
@@ -147,15 +147,20 @@ SIMPLE_JWT = {
 }
 
 
-# CORS
+# CORS — locked to specific frontend origins only
 CORS_ALLOWED_ORIGINS = [
-    "https://zuru-frontend.vercel.app",
-    "http://localhost:5173",
+    "https://zuru-frontend.vercel.app",          # Production: Vercel frontend
+    os.getenv("RENDER_BACKEND_URL", ""),          # Production: Render backend (health checks)
+    "http://localhost:5173",                      # Local dev: Vite
     "http://127.0.0.1:5173",
-    "http://192.168.0.100:5173", # Mobile testing
+    "http://192.168.0.100:5173",                  # Mobile LAN testing
 ]
+# Strip any empty string entry if RENDER_BACKEND_URL is not set locally
+CORS_ALLOWED_ORIGINS = [o for o in CORS_ALLOWED_ORIGINS if o]
+
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
+    "https://zuru-frontend.vercel.app",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://192.168.0.100:5173",
